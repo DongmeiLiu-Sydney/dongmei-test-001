@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MFC App Icon Generator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #1e1e2e;
+      color: #cdd6f4;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: #181825;
+      padding: 16px 24px;
+      border-bottom: 1px solid #313244;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #cba6f7;
+    }
+
+    header span {
+      font-size: 0.85rem;
+      color: #6c7086;
+    }
+
+    .app {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ---- Toolbar ---- */
+    .toolbar {
+      width: 260px;
+      background: #181825;
+      border-right: 1px solid #313244;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .toolbar section h2 {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #a6adc8;
+      margin-bottom: 8px;
+    }
+
+    .toolbar label {
+      display: block;
+      font-size: 0.85rem;
+      margin-bottom: 4px;
+      color: #bac2de;
+    }
+
+    .toolbar input[type="text"],
+    .toolbar input[type="number"],
+    .toolbar select {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid #313244;
+      border-radius: 6px;
+      background: #1e1e2e;
+      color: #cdd6f4;
+      font-size: 0.85rem;
+      margin-bottom: 8px;
+    }
+
+    .toolbar input[type="color"] {
+      width: 48px;
+      height: 32px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background: none;
+    }
+
+    .color-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .tool-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tool-buttons button {
+      flex: 1 1 45%;
+      padding: 6px;
+      border: 1px solid #313244;
+      border-radius: 6px;
+      background: #1e1e2e;
+      color: #cdd6f4;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .tool-buttons button:hover { background: #313244; }
+    .tool-buttons button.active { background: #585b70; border-color: #cba6f7; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 14px;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.15s;
+      font-weight: 500;
+    }
+
+    .btn-primary { background: #cba6f7; color: #1e1e2e; }
+    .btn-primary:hover { background: #b48bf2; }
+    .btn-secondary { background: #313244; color: #cdd6f4; }
+    .btn-secondary:hover { background: #45475a; }
+    .btn-danger { background: #f38ba8; color: #1e1e2e; }
+    .btn-danger:hover { background: #e06c8a; }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* ---- Canvas Area ---- */
+    .canvas-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      gap: 20px;
+      overflow: auto;
+    }
+
+    .canvas-wrapper {
+      position: relative;
+      border: 2px solid #313244;
+      border-radius: 8px;
+      overflow: hidden;
+      background: repeating-conic-gradient(#45475a 0% 25%, #313244 0% 50%) 0 0 / 16px 16px;
+    }
+
+    #main-canvas {
+      display: block;
+      cursor: crosshair;
+      image-rendering: pixelated;
+    }
+
+    /* ---- Preview Panel ---- */
+    .preview-panel {
+      width: 220px;
+      background: #181825;
+      border-left: 1px solid #313244;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .preview-panel h2 {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #a6adc8;
+    }
+
+    .preview-item {
+      text-align: center;
+    }
+
+    .preview-item canvas {
+      border: 1px solid #313244;
+      border-radius: 4px;
+      image-rendering: pixelated;
+      background: repeating-conic-gradient(#45475a 0% 25%, #313244 0% 50%) 0 0 / 8px 8px;
+    }
+
+    .preview-item p {
+      font-size: 0.75rem;
+      color: #6c7086;
+      margin-top: 4px;
+    }
+
+    /* ---- Upload area ---- */
+    .upload-zone {
+      border: 2px dashed #585b70;
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s;
+      font-size: 0.8rem;
+      color: #6c7086;
+    }
+
+    .upload-zone:hover { border-color: #cba6f7; color: #cba6f7; }
+
+    #image-upload { display: none; }
+
+    /* Range slider */
+    input[type="range"] {
+      width: 100%;
+      accent-color: #cba6f7;
+    }
+
+    .size-info {
+      font-size: 0.75rem;
+      color: #6c7086;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>MFC Icon Generator</h1>
+    <span>Create multi-size .ico files for MFC applications</span>
+  </header>
+
+  <div class="app">
+    <!-- Left Toolbar -->
+    <aside class="toolbar">
+      <!-- Drawing Tools -->
+      <section>
+        <h2>Tools</h2>
+        <div class="tool-buttons">
+          <button id="tool-pencil" class="active" onclick="setTool('pencil')">✏️ Pencil</button>
+          <button id="tool-eraser" onclick="setTool('eraser')">🧹 Eraser</button>
+          <button id="tool-fill" onclick="setTool('fill')">🪣 Fill</button>
+          <button id="tool-rect" onclick="setTool('rect')">⬜ Rect</button>
+          <button id="tool-circle" onclick="setTool('circle')">⭕ Circle</button>
+          <button id="tool-line" onclick="setTool('line')">📏 Line</button>
+        </div>
+      </section>
+
+      <!-- Colors -->
+      <section>
+        <h2>Colors</h2>
+        <div class="color-row">
+          <label>Fore:</label>
+          <input type="color" id="fg-color" value="#cba6f7">
+          <label>Back:</label>
+          <input type="color" id="bg-color" value="#1e1e2e">
+        </div>
+      </section>
+
+      <!-- Brush Size -->
+      <section>
+        <h2>Brush Size</h2>
+        <input type="range" id="brush-size" min="1" max="16" value="1">
+        <p class="size-info" id="brush-size-label">1 px</p>
+      </section>
+
+      <!-- Canvas Size -->
+      <section>
+        <h2>Canvas Size</h2>
+        <label>Edit at:</label>
+        <select id="canvas-size" onchange="changeCanvasSize()">
+          <option value="256">256 × 256 (recommended)</option>
+          <option value="48">48 × 48</option>
+          <option value="32">32 × 32</option>
+          <option value="16">16 × 16</option>
+        </select>
+      </section>
+
+      <!-- Text -->
+      <section>
+        <h2>Add Text</h2>
+        <label>Text:</label>
+        <input type="text" id="text-input" placeholder="e.g. M">
+        <label>Font Size:</label>
+        <input type="number" id="text-size" value="120" min="8" max="256">
+        <label>Font:</label>
+        <select id="text-font">
+          <option value="Arial">Arial</option>
+          <option value="Segoe UI">Segoe UI</option>
+          <option value="Consolas">Consolas</option>
+          <option value="Impact">Impact</option>
+          <option value="Georgia">Georgia</option>
+          <option value="Times New Roman">Times New Roman</option>
+          <option value="Courier New">Courier New</option>
+        </select>
+        <label><input type="checkbox" id="text-bold"> Bold</label>
+        <div class="btn-row" style="margin-top:8px;">
+          <button class="btn btn-secondary" onclick="addText()">Add Text</button>
+        </div>
+      </section>
+
+      <!-- Upload Image -->
+      <section>
+        <h2>Import Image</h2>
+        <div class="upload-zone" onclick="document.getElementById('image-upload').click()">
+          📁 Click to upload image
+        </div>
+        <input type="file" id="image-upload" accept="image/*" onchange="handleImageUpload(event)">
+        <div class="btn-row" style="margin-top:8px;">
+          <button class="btn btn-secondary" onclick="fillBackground()">Fill Background</button>
+        </div>
+      </section>
+
+      <!-- Shape Templates -->
+      <section>
+        <h2>Quick Templates</h2>
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="applyTemplate('gear')">⚙️ Gear</button>
+          <button class="btn btn-secondary" onclick="applyTemplate('document')">📄 Doc</button>
+          <button class="btn btn-secondary" onclick="applyTemplate('folder')">📂 Folder</button>
+          <button class="btn btn-secondary" onclick="applyTemplate('window')">🖥️ Window</button>
+        </div>
+      </section>
+
+      <!-- Actions -->
+      <section>
+        <h2>Actions</h2>
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="undoAction()">↩ Undo</button>
+          <button class="btn btn-secondary" onclick="redoAction()">↪ Redo</button>
+        </div>
+        <div class="btn-row" style="margin-top:8px;">
+          <button class="btn btn-danger" onclick="clearCanvas()">🗑️ Clear</button>
+        </div>
+      </section>
+    </aside>
+
+    <!-- Main Canvas -->
+    <main class="canvas-area">
+      <div class="canvas-wrapper" id="canvas-wrapper">
+        <canvas id="main-canvas" width="256" height="256"></canvas>
+      </div>
+      <p class="size-info" id="canvas-info">256 × 256 — Zoom: 2×</p>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="downloadICO()">⬇️ Download .ico</button>
+        <button class="btn btn-secondary" onclick="downloadPNG()">⬇️ Download .png</button>
+      </div>
+    </main>
+
+    <!-- Right Preview Panel -->
+    <aside class="preview-panel">
+      <h2>Icon Previews</h2>
+      <div class="preview-item">
+        <canvas id="preview-256" width="256" height="256"></canvas>
+        <p>256 × 256</p>
+      </div>
+      <div class="preview-item">
+        <canvas id="preview-48" width="48" height="48"></canvas>
+        <p>48 × 48</p>
+      </div>
+      <div class="preview-item">
+        <canvas id="preview-32" width="32" height="32"></canvas>
+        <p>32 × 32</p>
+      </div>
+      <div class="preview-item">
+        <canvas id="preview-16" width="16" height="16"></canvas>
+        <p>16 × 16</p>
+      </div>
+
+      <h2 style="margin-top:12px;">Dark / Light</h2>
+      <div style="display:flex;gap:12px;justify-content:center;">
+        <div style="background:#1e1e2e;padding:8px;border-radius:6px;border:1px solid #313244;">
+          <canvas id="preview-dark" width="32" height="32"></canvas>
+        </div>
+        <div style="background:#eff1f5;padding:8px;border-radius:6px;border:1px solid #ccd0da;">
+          <canvas id="preview-light" width="32" height="32"></canvas>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    // ============================================================
+    // State
+    // ============================================================
+    const canvas = document.getElementById('main-canvas');
+    const ctx = canvas.getContext('2d');
+    let currentTool = 'pencil';
+    let isDrawing = false;
+    let startX = 0, startY = 0;
+    let canvasLogicalSize = 256;
+    let zoom = 2;
+    let undoStack = [];
+    let redoStack = [];
+    let snapshotBeforeStroke = null;
+
+    initCanvas();
+    saveUndoState();
+
+    // ============================================================
+    // Tool selection
+    // ============================================================
+    function setTool(tool) {
+      currentTool = tool;
+      document.querySelectorAll('.tool-buttons button').forEach(b => b.classList.remove('active'));
+      const btn = document.getElementById('tool-' + tool);
+      if (btn) btn.classList.add('active');
+    }
+
+    // ============================================================
+    // Canvas initialisation
+    // ============================================================
+    function initCanvas() {
+      canvas.width = canvasLogicalSize;
+      canvas.height = canvasLogicalSize;
+      canvas.style.width = (canvasLogicalSize * zoom) + 'px';
+      canvas.style.height = (canvasLogicalSize * zoom) + 'px';
+      ctx.imageSmoothingEnabled = false;
+      document.getElementById('canvas-info').textContent =
+        `${canvasLogicalSize} × ${canvasLogicalSize} — Zoom: ${zoom}×`;
+    }
+
+    function changeCanvasSize() {
+      const sel = document.getElementById('canvas-size');
+      const newSize = parseInt(sel.value, 10);
+      // Preserve current image data by drawing onto the new size
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = canvasLogicalSize;
+      tempCanvas.height = canvasLogicalSize;
+      tempCanvas.getContext('2d').drawImage(canvas, 0, 0);
+
+      canvasLogicalSize = newSize;
+      zoom = Math.max(1, Math.floor(512 / newSize));
+      initCanvas();
+      ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 0, 0, newSize, newSize);
+      updatePreviews();
+      saveUndoState();
+    }
+
+    // ============================================================
+    // Brush size
+    // ============================================================
+    document.getElementById('brush-size').addEventListener('input', function () {
+      document.getElementById('brush-size-label').textContent = this.value + ' px';
+    });
+
+    // ============================================================
+    // Drawing helpers
+    // ============================================================
+    function getCanvasPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      return {
+        x: Math.floor((e.clientX - rect.left) * scaleX),
+        y: Math.floor((e.clientY - rect.top) * scaleY)
+      };
+    }
+
+    function getColor() {
+      return document.getElementById('fg-color').value;
+    }
+
+    function getBrushSize() {
+      return parseInt(document.getElementById('brush-size').value, 10);
+    }
+
+    function drawPixel(x, y, size) {
+      if (currentTool === 'eraser') {
+        ctx.clearRect(x - Math.floor(size / 2), y - Math.floor(size / 2), size, size);
+      } else {
+        ctx.fillStyle = getColor();
+        ctx.fillRect(x - Math.floor(size / 2), y - Math.floor(size / 2), size, size);
+      }
+    }
+
+    function drawLine(x0, y0, x1, y1, size) {
+      const dx = Math.abs(x1 - x0);
+      const dy = Math.abs(y1 - y0);
+      const sx = x0 < x1 ? 1 : -1;
+      const sy = y0 < y1 ? 1 : -1;
+      let err = dx - dy;
+      while (true) {
+        drawPixel(x0, y0, size);
+        if (x0 === x1 && y0 === y1) break;
+        const e2 = 2 * err;
+        if (e2 > -dy) { err -= dy; x0 += sx; }
+        if (e2 < dx) { err += dx; y0 += sy; }
+      }
+    }
+
+    // ============================================================
+    // Flood fill
+    // ============================================================
+    function floodFill(startX, startY, fillColor) {
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      const w = canvas.width;
+      const h = canvas.height;
+
+      const idx = (startY * w + startX) * 4;
+      const targetR = data[idx], targetG = data[idx + 1], targetB = data[idx + 2], targetA = data[idx + 3];
+
+      // Parse fill color
+      const tempEl = document.createElement('div');
+      tempEl.style.color = fillColor;
+      document.body.appendChild(tempEl);
+      const computed = getComputedStyle(tempEl).color;
+      document.body.removeChild(tempEl);
+      const match = computed.match(/(\d+)/g);
+      const fR = parseInt(match[0]), fG = parseInt(match[1]), fB = parseInt(match[2]);
+      const fA = 255;
+
+      if (targetR === fR && targetG === fG && targetB === fB && targetA === fA) return;
+
+      const stack = [[startX, startY]];
+      const visited = new Uint8Array(w * h);
+
+      while (stack.length > 0) {
+        const [cx, cy] = stack.pop();
+        if (cx < 0 || cx >= w || cy < 0 || cy >= h) continue;
+        const pi = cy * w + cx;
+        if (visited[pi]) continue;
+        const ci = pi * 4;
+        if (data[ci] !== targetR || data[ci + 1] !== targetG || data[ci + 2] !== targetB || data[ci + 3] !== targetA) continue;
+        visited[pi] = 1;
+        data[ci] = fR; data[ci + 1] = fG; data[ci + 2] = fB; data[ci + 3] = fA;
+        stack.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]);
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    // ============================================================
+    // Mouse events
+    // ============================================================
+    let lastX, lastY;
+
+    canvas.addEventListener('mousedown', e => {
+      isDrawing = true;
+      const pos = getCanvasPos(e);
+      startX = pos.x; startY = pos.y;
+      lastX = pos.x; lastY = pos.y;
+      snapshotBeforeStroke = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      if (currentTool === 'pencil' || currentTool === 'eraser') {
+        drawPixel(pos.x, pos.y, getBrushSize());
+        updatePreviews();
+      } else if (currentTool === 'fill') {
+        floodFill(pos.x, pos.y, getColor());
+        updatePreviews();
+        isDrawing = false;
+        saveUndoState();
+      }
+    });
+
+    canvas.addEventListener('mousemove', e => {
+      if (!isDrawing) return;
+      const pos = getCanvasPos(e);
+
+      if (currentTool === 'pencil' || currentTool === 'eraser') {
+        drawLine(lastX, lastY, pos.x, pos.y, getBrushSize());
+        lastX = pos.x; lastY = pos.y;
+        updatePreviews();
+      } else if (currentTool === 'rect' || currentTool === 'circle' || currentTool === 'line') {
+        // Live preview: restore snapshot and draw shape
+        ctx.putImageData(snapshotBeforeStroke, 0, 0);
+        ctx.strokeStyle = getColor();
+        ctx.fillStyle = getColor();
+        ctx.lineWidth = getBrushSize();
+        if (currentTool === 'rect') {
+          ctx.strokeRect(startX, startY, pos.x - startX, pos.y - startY);
+        } else if (currentTool === 'circle') {
+          const rx = Math.abs(pos.x - startX) / 2;
+          const ry = Math.abs(pos.y - startY) / 2;
+          const cx = startX + (pos.x - startX) / 2;
+          const cy = startY + (pos.y - startY) / 2;
+          ctx.beginPath();
+          ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+          ctx.stroke();
+        } else if (currentTool === 'line') {
+          ctx.beginPath();
+          ctx.moveTo(startX, startY);
+          ctx.lineTo(pos.x, pos.y);
+          ctx.stroke();
+        }
+        updatePreviews();
+      }
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      if (isDrawing) {
+        isDrawing = false;
+        saveUndoState();
+      }
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      if (isDrawing) {
+        isDrawing = false;
+        saveUndoState();
+      }
+    });
+
+    // ============================================================
+    // Undo / Redo
+    // ============================================================
+    function saveUndoState() {
+      undoStack.push(canvas.toDataURL());
+      if (undoStack.length > 50) undoStack.shift();
+      redoStack = [];
+    }
+
+    function undoAction() {
+      if (undoStack.length <= 1) return;
+      redoStack.push(undoStack.pop());
+      const img = new Image();
+      img.onload = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        updatePreviews();
+      };
+      img.src = undoStack[undoStack.length - 1];
+    }
+
+    function redoAction() {
+      if (redoStack.length === 0) return;
+      const dataUrl = redoStack.pop();
+      undoStack.push(dataUrl);
+      const img = new Image();
+      img.onload = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        updatePreviews();
+      };
+      img.src = dataUrl;
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undoAction(); }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'y') { e.preventDefault(); redoAction(); }
+    });
+
+    // ============================================================
+    // Previews
+    // ============================================================
+    function updatePreviews() {
+      [256, 48, 32, 16].forEach(size => {
+        const pc = document.getElementById('preview-' + size);
+        if (!pc) return;
+        const pctx = pc.getContext('2d');
+        pctx.clearRect(0, 0, size, size);
+        pctx.imageSmoothingEnabled = size < canvasLogicalSize;
+        pctx.imageSmoothingQuality = 'high';
+        pctx.drawImage(canvas, 0, 0, size, size);
+      });
+      // Dark/light previews
+      ['dark', 'light'].forEach(mode => {
+        const pc = document.getElementById('preview-' + mode);
+        if (!pc) return;
+        const pctx = pc.getContext('2d');
+        pctx.clearRect(0, 0, 32, 32);
+        pctx.imageSmoothingEnabled = true;
+        pctx.imageSmoothingQuality = 'high';
+        pctx.drawImage(canvas, 0, 0, 32, 32);
+      });
+    }
+
+    // ============================================================
+    // Clear
+    // ============================================================
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      updatePreviews();
+      saveUndoState();
+    }
+
+    // ============================================================
+    // Fill background
+    // ============================================================
+    function fillBackground() {
+      const color = document.getElementById('bg-color').value;
+      ctx.fillStyle = color;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      updatePreviews();
+      saveUndoState();
+    }
+
+    // ============================================================
+    // Add text
+    // ============================================================
+    function addText() {
+      const text = document.getElementById('text-input').value;
+      if (!text) return;
+      const fontSize = parseInt(document.getElementById('text-size').value, 10);
+      const fontFamily = document.getElementById('text-font').value;
+      const bold = document.getElementById('text-bold').checked;
+      ctx.fillStyle = getColor();
+      ctx.font = `${bold ? 'bold ' : ''}${fontSize}px "${fontFamily}"`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+      updatePreviews();
+      saveUndoState();
+    }
+
+    // ============================================================
+    // Image upload
+    // ============================================================
+    function handleImageUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (ev) {
+        const img = new Image();
+        img.onload = () => {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          // Fit image to canvas preserving aspect ratio
+          const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
+          const w = img.width * scale;
+          const h = img.height * scale;
+          const x = (canvas.width - w) / 2;
+          const y = (canvas.height - h) / 2;
+          ctx.drawImage(img, x, y, w, h);
+          updatePreviews();
+          saveUndoState();
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // ============================================================
+    // Templates
+    // ============================================================
+    function applyTemplate(name) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const s = canvas.width;
+      const fg = getColor();
+      const bg = document.getElementById('bg-color').value;
+
+      ctx.save();
+      if (name === 'gear') {
+        // Rounded rect background
+        roundRect(ctx, s * 0.08, s * 0.08, s * 0.84, s * 0.84, s * 0.15, bg);
+        // Gear icon
+        ctx.fillStyle = fg;
+        ctx.beginPath();
+        const cx = s / 2, cy = s / 2, outerR = s * 0.32, innerR = s * 0.18, teeth = 8;
+        for (let i = 0; i < teeth * 2; i++) {
+          const angle = (Math.PI * 2 * i) / (teeth * 2) - Math.PI / 2;
+          const r = i % 2 === 0 ? outerR : innerR;
+          const px = cx + Math.cos(angle) * r;
+          const py = cy + Math.sin(angle) * r;
+          if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        // Inner circle (hole)
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.beginPath();
+        ctx.arc(cx, cy, s * 0.08, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
+      } else if (name === 'document') {
+        roundRect(ctx, s * 0.08, s * 0.08, s * 0.84, s * 0.84, s * 0.15, bg);
+        // Document body
+        ctx.fillStyle = '#eff1f5';
+        roundRect(ctx, s * 0.22, s * 0.14, s * 0.56, s * 0.72, s * 0.04, '#eff1f5');
+        // Folded corner
+        ctx.fillStyle = '#ccd0da';
+        ctx.beginPath();
+        ctx.moveTo(s * 0.58, s * 0.14);
+        ctx.lineTo(s * 0.78, s * 0.34);
+        ctx.lineTo(s * 0.58, s * 0.34);
+        ctx.closePath();
+        ctx.fill();
+        // Text lines
+        ctx.fillStyle = '#9ca0b0';
+        for (let i = 0; i < 4; i++) {
+          const w = i === 3 ? s * 0.28 : s * 0.36;
+          ctx.fillRect(s * 0.28, s * 0.42 + i * s * 0.1, w, s * 0.04);
+        }
+      } else if (name === 'folder') {
+        roundRect(ctx, s * 0.08, s * 0.08, s * 0.84, s * 0.84, s * 0.15, bg);
+        // Folder tab
+        ctx.fillStyle = fg;
+        roundRectPath(ctx, s * 0.16, s * 0.24, s * 0.32, s * 0.12, s * 0.04);
+        ctx.fill();
+        // Folder body
+        roundRectPath(ctx, s * 0.16, s * 0.32, s * 0.68, s * 0.44, s * 0.04);
+        ctx.fill();
+      } else if (name === 'window') {
+        roundRect(ctx, s * 0.08, s * 0.08, s * 0.84, s * 0.84, s * 0.15, bg);
+        // Window frame
+        ctx.fillStyle = '#585b70';
+        roundRectPath(ctx, s * 0.14, s * 0.2, s * 0.72, s * 0.6, s * 0.04);
+        ctx.fill();
+        // Title bar
+        ctx.fillStyle = fg;
+        ctx.fillRect(s * 0.14, s * 0.2, s * 0.72, s * 0.1);
+        // Window buttons
+        const btnY = s * 0.23, btnR = s * 0.02;
+        ctx.fillStyle = '#f38ba8';
+        ctx.beginPath(); ctx.arc(s * 0.72, btnY, btnR, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#f9e2af';
+        ctx.beginPath(); ctx.arc(s * 0.66, btnY, btnR, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#a6e3a1';
+        ctx.beginPath(); ctx.arc(s * 0.6, btnY, btnR, 0, Math.PI * 2); ctx.fill();
+        // Content area
+        ctx.fillStyle = '#1e1e2e';
+        ctx.fillRect(s * 0.16, s * 0.32, s * 0.68, s * 0.46);
+      }
+      ctx.restore();
+      updatePreviews();
+      saveUndoState();
+    }
+
+    function roundRect(c, x, y, w, h, r, color) {
+      c.fillStyle = color;
+      roundRectPath(c, x, y, w, h, r);
+      c.fill();
+    }
+
+    function roundRectPath(c, x, y, w, h, r) {
+      c.beginPath();
+      c.moveTo(x + r, y);
+      c.lineTo(x + w - r, y);
+      c.quadraticCurveTo(x + w, y, x + w, y + r);
+      c.lineTo(x + w, y + h - r);
+      c.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      c.lineTo(x + r, y + h);
+      c.quadraticCurveTo(x, y + h, x, y + h - r);
+      c.lineTo(x, y + r);
+      c.quadraticCurveTo(x, y, x + r, y);
+      c.closePath();
+    }
+
+    // ============================================================
+    // Download as PNG
+    // ============================================================
+    function downloadPNG() {
+      const link = document.createElement('a');
+      link.download = 'icon_' + canvasLogicalSize + '.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    // ============================================================
+    // Download as ICO (multi-size)
+    // ============================================================
+    function downloadICO() {
+      const sizes = [16, 32, 48, 256];
+      const images = [];
+
+      for (const size of sizes) {
+        const tc = document.createElement('canvas');
+        tc.width = size;
+        tc.height = size;
+        const tctx = tc.getContext('2d');
+        tctx.imageSmoothingEnabled = true;
+        tctx.imageSmoothingQuality = 'high';
+        tctx.drawImage(canvas, 0, 0, size, size);
+
+        if (size === 256) {
+          // 256×256 is stored as embedded PNG in ICO
+          images.push({ size, png: true, dataUrl: tc.toDataURL('image/png') });
+        } else {
+          // Smaller sizes use BMP format in ICO
+          const imageData = tctx.getImageData(0, 0, size, size);
+          images.push({ size, png: false, imageData });
+        }
+      }
+
+      const icoBlob = buildICO(images);
+      const link = document.createElement('a');
+      link.download = 'app.ico';
+      link.href = URL.createObjectURL(icoBlob);
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    /**
+     * Build a valid .ico file containing multiple icon sizes.
+     * ICO format:  ICONDIR + ICONDIRENTRY[] + image data
+     */
+    function buildICO(images) {
+      const numImages = images.length;
+      const headerSize = 6;
+      const entrySize = 16;
+      const dirSize = headerSize + entrySize * numImages;
+
+      // First pass: encode each image and get its byte data
+      const encodedImages = images.map(img => {
+        if (img.png) {
+          // Convert data URL to Uint8Array
+          const base64 = img.dataUrl.split(',')[1];
+          const binary = atob(base64);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+          return bytes;
+        } else {
+          return encodeBMP(img.imageData, img.size);
+        }
+      });
+
+      // Calculate offsets
+      let offset = dirSize;
+      const offsets = encodedImages.map(data => {
+        const o = offset;
+        offset += data.length;
+        return o;
+      });
+
+      // Build the file
+      const totalSize = offset;
+      const buffer = new ArrayBuffer(totalSize);
+      const view = new DataView(buffer);
+
+      // ICONDIR header
+      view.setUint16(0, 0, true);       // reserved
+      view.setUint16(2, 1, true);       // type: 1 = ICO
+      view.setUint16(4, numImages, true); // count
+
+      // ICONDIRENTRY for each image
+      for (let i = 0; i < numImages; i++) {
+        const base = headerSize + i * entrySize;
+        const img = images[i];
+        const w = img.size >= 256 ? 0 : img.size;
+        const h = img.size >= 256 ? 0 : img.size;
+        view.setUint8(base + 0, w);           // width
+        view.setUint8(base + 1, h);           // height
+        view.setUint8(base + 2, 0);           // color palette
+        view.setUint8(base + 3, 0);           // reserved
+        view.setUint16(base + 4, 1, true);    // color planes
+        view.setUint16(base + 6, 32, true);   // bits per pixel
+        view.setUint32(base + 8, encodedImages[i].length, true);  // size
+        view.setUint32(base + 12, offsets[i], true);               // offset
+      }
+
+      // Image data
+      const uint8 = new Uint8Array(buffer);
+      for (let i = 0; i < numImages; i++) {
+        uint8.set(encodedImages[i], offsets[i]);
+      }
+
+      return new Blob([buffer], { type: 'image/x-icon' });
+    }
+
+    /**
+     * Encode image data as a BMP DIB for ICO embedding.
+     * ICO BMPs use BITMAPINFOHEADER (40 bytes) + pixel data (bottom-up, BGRA) + AND mask.
+     */
+    function encodeBMP(imageData, size) {
+      const w = size, h = size;
+      const headerSize = 40;
+      const pixelDataSize = w * h * 4; // BGRA
+      // AND mask: 1-bit per pixel, rows padded to 4-byte boundary
+      const andRowSize = Math.ceil(w / 8);
+      const andRowPadded = Math.ceil(andRowSize / 4) * 4;
+      const andMaskSize = andRowPadded * h;
+      const totalSize = headerSize + pixelDataSize + andMaskSize;
+      const buffer = new ArrayBuffer(totalSize);
+      const view = new DataView(buffer);
+      const data = imageData.data;
+
+      // BITMAPINFOHEADER
+      view.setUint32(0, 40, true);          // header size
+      view.setInt32(4, w, true);             // width
+      view.setInt32(8, h * 2, true);         // height (doubled for ICO: XOR + AND)
+      view.setUint16(12, 1, true);           // planes
+      view.setUint16(14, 32, true);          // bits per pixel
+      view.setUint32(16, 0, true);           // compression (none)
+      view.setUint32(20, pixelDataSize + andMaskSize, true); // image size
+      view.setInt32(24, 0, true);            // x pixels per meter
+      view.setInt32(28, 0, true);            // y pixels per meter
+      view.setUint32(32, 0, true);           // colors used
+      view.setUint32(36, 0, true);           // important colors
+
+      // Pixel data (BGRA, bottom-up)
+      const pixelOffset = headerSize;
+      for (let y = h - 1; y >= 0; y--) {
+        for (let x = 0; x < w; x++) {
+          const srcIdx = (y * w + x) * 4;
+          const dstIdx = pixelOffset + ((h - 1 - y) * w + x) * 4;
+          view.setUint8(dstIdx + 0, data[srcIdx + 2]); // B
+          view.setUint8(dstIdx + 1, data[srcIdx + 1]); // G
+          view.setUint8(dstIdx + 2, data[srcIdx + 0]); // R
+          view.setUint8(dstIdx + 3, data[srcIdx + 3]); // A
+        }
+      }
+
+      // AND mask (all zeros = fully opaque if alpha is handled in XOR)
+      // Already zero-filled by ArrayBuffer constructor
+
+      return new Uint8Array(buffer);
+    }
+  </script>
+</body>
+</html>
