@@ -521,6 +521,7 @@
       const computed = getComputedStyle(tempEl).color;
       document.body.removeChild(tempEl);
       const match = computed.match(/(\d+)/g);
+      if (!match || match.length < 3) return;
       const fR = parseInt(match[0]), fG = parseInt(match[1]), fB = parseInt(match[2]);
       const fA = 255;
 
@@ -585,11 +586,13 @@
         } else if (currentTool === 'circle') {
           const rx = Math.abs(pos.x - startX) / 2;
           const ry = Math.abs(pos.y - startY) / 2;
-          const cx = startX + (pos.x - startX) / 2;
-          const cy = startY + (pos.y - startY) / 2;
-          ctx.beginPath();
-          ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
-          ctx.stroke();
+          if (rx > 0.5 && ry > 0.5) {
+            const cx = startX + (pos.x - startX) / 2;
+            const cy = startY + (pos.y - startY) / 2;
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+            ctx.stroke();
+          }
         } else if (currentTool === 'line') {
           ctx.beginPath();
           ctx.moveTo(startX, startY);
@@ -909,8 +912,7 @@
           // Convert data URL to Uint8Array
           const base64 = img.dataUrl.split(',')[1];
           const binary = atob(base64);
-          const bytes = new Uint8Array(binary.length);
-          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+          const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
           return bytes;
         } else {
           return encodeBMP(img.imageData, img.size);
